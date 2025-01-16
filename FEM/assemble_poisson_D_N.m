@@ -1,4 +1,4 @@
-function [A,b,ud] = assemble_poisson_No_D(geom,nu,f,gn,gd)
+function [A,b,ud] = assemble_poisson_D_N(geom,nu,f,gd,gn)
 E = geom.obj.T;
 P = geom.obj.P;
 Piv = geom.piv.piv;
@@ -48,21 +48,21 @@ end
 b = b - Ad*ud;
 
 %% Aggiunta dei contributi di Neumann.
-for e = 1: size(geom.piv.Ne)
-    l = geom.piv.Ne(e);
-    ni = geom.obj.E(l,1);
-    nf = geom.obj.E(l,2);
-    xi = Piv(ni,1);
-    xf = Piv(nf,1);
-    yi = Piv(ni,2);
-    yf = Piv(nf,2);
-    ji = Piv(ni);
-    jf = Piv(nf);
-    E = sqrt((xf-xi)^2 + (yf-yi)^2);
-    if ji > 0
-        b(ji) = b(ji) + (1/6)*E*(2*gn(xi,yi)+gn(xf,yf));
-    end
-    if jf > 0
-        b(jf) = b(jf) +(1/6)*E*(gn(xi,yi)+2*gn(xf,yf));
-    end       
-end
+% for e = 1: size(geom.piv.Ne)
+%     l = geom.piv.Ne(e);
+%     ni = geom.obj.E(l,1);
+%     nf = geom.obj.E(l,2);
+%     xi = Piv(ni,1);
+%     xf = Piv(nf,1);
+%     yi = Piv(ni,2);
+%     yf = Piv(nf,2);
+%     ji = Piv(ni);
+%     jf = Piv(nf);
+%     E = sqrt((xf-xi)^2 + (yf-yi)^2);
+%     if ji > 0
+%         b(ji) = b(ji) + (1/6)*E*(2*gn(xi,yi)+gn(xf,yf));
+%     end
+%     if jf > 0
+%         b(jf) = b(jf) +(1/6)*E*(gn(xi,yi)+2*gn(xf,yf));
+%     end       
+% end

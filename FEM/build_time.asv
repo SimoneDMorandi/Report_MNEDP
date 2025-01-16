@@ -1,4 +1,4 @@
-function [F,G,GD,B,Bd,K,Kd] = build_time(geom,nu,f,ud,gd,t)
+function [F,ud,B,Bd,K,Kd] = build_time(geom,nu,f,ud,gd,t)
 
 % Quad. nodes and weights.
 [zita, csi, eta, omega] = int_nodes_weights(5, 'triangle');

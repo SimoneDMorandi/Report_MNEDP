@@ -1,20 +1,18 @@
-%%
 clear
 clc
-format short e
-% Equazione del calore con Dirichlet e Neumann non omogenee.
+% Heat Equation with Non-Hom. Dirichlet conditions.
 
-% Dati iniziali.
-run("sample_square_dirichlet_short.m");
-u = @(x,y) x+y +16*x.*(1-x).*y.*(1-y);
-du_dx = @(x, y) 1 +16*(1-2*x).*y.*(1-y); 
-du_dy = @(x, y) 1 +16*x.*(1-x).*(1-2*y);
-f = @(x,y) 32*(x*(1-x) +y*(1-y));
+% Initial Data.
 nu = 1.0;
-gd = @(x,y) x+y;
-gn = @(x,y) x+y;
-% function che costruisce il sistema lineare.
-[A,b,ud] = assemble_poisson_D_N(geom,nu,f,gn,gd);
+f = @(x,y) -sin(pi*x).*exp(-2*y);
+gd = @(x,y) 0;
+gn = @(x,y) [pi*(cos(pi*x) .* exp(-2*y))./(4-pi^2); -2*(sin(pi*x) .* exp(-2*y))./(4-pi^2)];
+u= @(x,y) (sin(pi*x) .* exp(-2*y))./(4-pi^2);
+marker_triang = [2 3 6 7];
+area_ref = 0.03;
+
+geom = triangulator_P2(area_ref,marker_triang)
+[A,b,ud] = assemble_poisson_D_N(geom,nu,f,gd,gn);
 % Risoluzione del sistema lineare.
 u_h = A\b;
 
@@ -30,36 +28,39 @@ for i = 1:geom.Nobj.N_node
 end
 
 % Rappresentazione grafica della u_star.
-% figure
-% trisurf(geom.obj.T,geom.obj.P(:,1), geom.obj.P(:,2),u_star)
-% figure
-% trisurf(geom.obj.T,geom.obj.P(:,1), geom.obj.P(:,2),u(geom.obj.P(:,1), geom.obj.P(:,2)))
+figure
+subplot(1,2,1)
+trisurf(geom.obj.T,geom.obj.P(:,1), geom.obj.P(:,2),u(geom.obj.P(:,1), geom.obj.P(:,2)))
+title('Exact solution');
+subplot(1,2,2)
+trisurf(geom.obj.T,geom.obj.P(:,1), geom.obj.P(:,2),u_star)
+title('u_h');
 
 %% Calcolo dell'errore.
-n_iter = 10;
-h = linspace(0.020,0.030,n_iter);
-err_0 = zeros(n_iter,1);
-err_1 = zeros(n_iter,1);
-global ref_area;
-ref_area = 0.5;
-for i= 1:n_iter
-    ref_area = ref_area-(ref_area*i/10000);
-    geom = triangulator(h(i));
-    u_s = assemble_poisson_D_N(geom,nu,f,gn,gd);
-    [E0,E1] = calculate_err(geom,u,u_star,gn,du_dx,du_dy);
-    err_0(i) = E0;
-    err_1(i) = E1;
-end
-% Rappresentazione grafica dell'errore.
-figure;
-loglog(h, err_0, 'o', 'MarkerFaceColor', 'r');
-hold on;
-p = polyfit(log(h), log(err_0), 1);
-fitted_line = polyval(p, log(h));
-plot(h, exp(fitted_line), 'LineWidth', 2);
-figure
-loglog(h, err_1, 'o', 'MarkerFaceColor', 'r');
-hold on;
-p = polyfit(log(h), log(err_1), 1);
-fitted_line = polyval(p, log(h));
-plot(h, exp(fitted_line), 'LineWidth', 2);
+% n_iter = 10;
+% h = linspace(0.020,0.030,n_iter);
+% err_0 = zeros(n_iter,1);
+% err_1 = zeros(n_iter,1);
+% global ref_area;
+% ref_area = 0.5;
+% for i= 1:n_iter
+%     ref_area = ref_area-(ref_area*i/10000);
+%     geom = triangulator(h(i));
+%     u_s = assemble_poisson_D_N(geom,nu,f,gn,gd);
+%     [E0,E1] = calculate_err(geom,u,u_star,gn,du_dx,du_dy);
+%     err_0(i) = E0;
+%     err_1(i) = E1;
+% end
+% % Rappresentazione grafica dell'errore.
+% figure;
+% loglog(h, err_0, 'o', 'MarkerFaceColor', 'r');
+% hold on;
+% p = polyfit(log(h), log(err_0), 1);
+% fitted_line = polyval(p, log(h));
+% plot(h, exp(fitted_line), 'LineWidth', 2);
+% figure
+% loglog(h, err_1, 'o', 'MarkerFaceColor', 'r');
+% hold on;
+% p = polyfit(log(h), log(err_1), 1);
+% fitted_line = polyval(p, log(h));
+% plot(h, exp(fitted_line), 'LineWidth', 2);

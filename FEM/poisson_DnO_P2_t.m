@@ -1,11 +1,11 @@
-function [F,G,GD,B,Bd,K,Kd] = build_time(geom,nu,f,ud,gd,t)
+function [u_star, u0, uD] = poisson_DnO_P2_t(geom, nu, f, gd, gn,t)
 
 % Quad. nodes and weights.
 [zita, csi, eta, omega] = int_nodes_weights(5, 'triangle');
 nq = length(omega);
 N = geom.Nobj.N_node + geom.Nobj.N_edge - size(geom.piv.Di,1);
-K = zeros(N, N);
-Kd = zeros(N, size(geom.piv.Di,1));
+A = zeros(N, N);
+AD = zeros(N, size(geom.piv.Di,1));
 b = zeros(N, 1);
 uD = zeros(size(geom.piv.Di,1),1);
 for e = 1 : geom.Nobj.N_ele
@@ -68,9 +68,9 @@ for e = 1 : geom.Nobj.N_ele
             for k = 1 : 6
                 kk = geom.piv.piv(geom.obj.T(e,k));
                 if (kk > 0)
-                    K(jj,kk) = K(jj,kk) + nu * A_local(l,k);
+                    A(jj,kk) = A(jj,kk) + nu * A_local(l,k);
                 else
-                    Kd(jj, -kk) = Kd(jj, -kk) +  nu * A_local(l,k);
+                    AD(jj, -kk) = AD(jj, -kk) +  nu * A_local(l,k);
                 end
 
             end
@@ -139,7 +139,7 @@ for e = 1:size(geom.piv.Ne, 1)
     if dof_v2 > 0, b(dof_v2) = b(dof_v2) + contributo(3); end
 end
 
-u0 = gmres(K, b - Kd*uD,[],1e-12,size(K,1));
+u0 = gmres(A, b - AD*uD,[],1e-12,size(A,1));
 
 u_star = zeros(N,1);
 
