@@ -94,6 +94,7 @@ for i = 1:size(geom.piv.Di,1)
     uD(i) = gD(geom.obj.P(n,1),geom.obj.P(n,2));
 end
 
+% Impongo le condizioni di Neumann
 for e = 1:size(geom.piv.Ne, 1)
     % Id lato con condizione di Neumann
     id_edge = geom.piv.Ne(e, 1);
@@ -156,7 +157,7 @@ end % e
 
 u0 = gmres(A, b - AD*uD,[],1e-12,size(A,1));
 
-u_star = zeros(N,1);
+u_star = zeros(size(geom.obj.P,1),1);
 
 % Impongo le condizioni di Dirichlet non omogeneo al bordo
 for i = 1:N

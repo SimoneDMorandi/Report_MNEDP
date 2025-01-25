@@ -1,7 +1,5 @@
 function [geom] = triangolatore(area_ref, marker_triang, marker_vertici)
 
-    % global area_ref;
-    % global marker_triang;
 
     if(~exist('mybbtr30.m'))
          addpath('../bbtr30')
@@ -154,5 +152,152 @@ function [geom] = triangolatore(area_ref, marker_triang, marker_vertici)
     clear X I;
     
     %----------------------------------------------------------------------------
+
+    %% Parte 1: Aggiungo le informazioni geometriche alla struttura
+    nnode = geom.Nobj.N_node;
+    
+    for l=1:geom.Nobj.N_edge
+    
+      n(1)=geom.obj.E(l,1); % edge starting node
+      n(2)=geom.obj.E(l,2); % edge ending node
+      e(1)=geom.obj.E(l,3); % side element
+      e(2)=geom.obj.E(l,4); % side element
+      
+      nnode = nnode + 1;
+    
+      geom.obj.P(nnode,:) = (geom.obj.P(n(1),:)+...
+					    geom.obj.P(n(2),:))/2; % P of the edge midpoint
+    
+      geom.obj.E(l,5)=nnode; % to connect the edge with its midpoint
+    
+      % Ricerca della posizione del punto medio
+      idx = [1 2 3];
+    
+      for el=e
+        
+        if(el ~= -1)
+          acc = 0;
+          acc = idx * ( geom.obj.T(el,1:3)==n(1) )'; % Ricerco la posizione dell'indice globale e la converto in indice 
+          % locale, moltiplicando scalarmente per idx
+          acc = acc + idx * ( geom.obj.T(el,1:3)==n(2) )'; % Il punto medio sta tra:
+          % 1 e 2 -> somma 3 -> posizione 4
+          % 1 e 3 -> somma 4 -> posizione 5
+          % 2 e 3 -> somma 5 -> posizione 6
+    
+          switch acc
+	    case 3
+	      geom.obj.T(el,4) = nnode;
+	    case 4
+	      geom.obj.T(el,6) = nnode;
+	    case 5
+	      geom.obj.T(el,5) = nnode;
+	    otherwise
+	      disp('sconoscuto');
+          end % switch acc      
+        end
+    
+      end % for el=e
+    
+    %% Parte 2: Distinguo se il lato di bordo ha la condizione di Neumann o di Dirichlet
+    % Se ho un lato che non è stato tagliato dal triangolatore e i due vertici
+    % hanno D, non è detto che il punto medio sia D, se su quel lato ho N devo
+    % imporre N anche nel punto medio-> devo vedere se quello è un lato
+    % iniziale e se ha la condizione di N, in questo modo impongo la condizione
+    % giusta al punto medio
+    % Obiettivo: non voglio fare ricerche all'interno di vettori per es. -> log(n)
+    
+      VertexValue = [0 0];
+    %  Vertex = [0 0];
+      D = [0 0];
+      InputVertexValue=[0 0];
+      
+    %idxV = 1:length(geom.input.BC.InputVertexValues); %indice dei vertici
+    
+				    % Se il lato e` di bordo
+      if( any(e==-1) )
+				    % Lato di Dirichlet
+        
+        if( geom.piv.nlist(n(1))~=0 && geom.piv.nlist(n(2))~=0 )
+				    %-----------------------
+          if( geom.piv.nlist(n(1)) ~= geom.piv.nlist(n(2)) )
+				    %
+	    if( any(geom.input.BC.InputVertexValues==geom.piv.nlist(n(1))) )
+				    % Vertice(1) con marker speciale
+	      VertexValue(1) = 1;
+		    % e` il vettore con un 1 in corrispondenza del vertice
+		    % del lato con marker speciale
+	      
+    %	  Vertex(1) = geom.input.BC.Boundary.Values*...
+    %		      (geom.input.BC.InputVertexValues == geom.piv.nlist(n(1)))';
+                 % valore del marker del lato del poligono iniziale che segue n1
+	      
+	         InputVertexValue(1) = [1:length(geom.input.BC.InputVertexValues)]*...
+			         (geom.input.BC.InputVertexValues == geom.piv.nlist(n(1)))';
+                 % marker del nodo del poligono iniziale che corrisponde al nodo n(1) del mio lato
+    
+	          % valore del marker del vertice del poligono iniziale n2
+	      D(1) = geom.piv.nlist(n(2));
+	    end
+				    %	
+	    if( any(geom.input.BC.InputVertexValues==geom.piv.nlist(n(2))) )
+	      VertexValue(2) = 1;
+    %	  Vertex(2) = geom.input.BC.Boundary.Values*...
+    %		      (geom.input.BC.InputVertexValues == geom.piv.nlist(n(2)))';
+              InputVertexValue(2) = [1:length(geom.input.BC.InputVertexValues)]*...
+			         (geom.input.BC.InputVertexValues == geom.piv.nlist(n(2)))';
+	      D(2) = geom.piv.nlist(n(1));
+	    end
+				    %
+	    if( sum(VertexValue) ~= 2 )
+	      Di = VertexValue*D';
+				    % nodo con condizione di Dirichlet
+              geom.piv.nlist(nnode)= Di;
+              geom.piv.Di(end+1,:) = [nnode, Di];
+              geom.piv.piv(nnode) = min(geom.piv.piv)-1;
+	    else
+                  % diamo al nuovo nodo il marker del lato
+                  % il lato che stiamo analizzando e` un lato del poligono
+                  % iniziale:
+              
+	     % l'indice del lato e` quello del nodo di inizio di quel lato
+	      if( max(InputVertexValue)-min(InputVertexValue)>1 ) % siamo sul lato di chiusura
+	        Di = geom.input.BC.Boundary.Values(max(InputVertexValue));
+	      else % siamo sui lati 1->2->3->4->
+	        Di = geom.input.BC.Boundary.Values(min(InputVertexValue));
+	      end
+			        % check della condizione di Neumann aperta
+	      if( rem(Di,2)== 0 ) % nodo con grado di liberta`, lato di
+                                  % Dirichlet aperto
+	        geom.piv.nlist(nnode)= 0;
+	        geom.piv.piv(nnode) = max(geom.piv.piv)+1;
+                disp('non dovevi essere qui');
+	      else
+                geom.piv.nlist(nnode)= Di;
+                geom.piv.Di(end+1,:) = [nnode, Di];
+                geom.piv.piv(nnode) = min(geom.piv.piv)-1;
+	      end
+	    end % if( sum(VertexValue) ~= 2 )
+	        %----------------------------------
+          else % if( geom.piv.nlist(n(1)) ~= geom.piv.nlist(n(2)) )
+	    Di = geom.piv.nlist(n(1));
+            geom.piv.nlist(nnode)= Di;
+            geom.piv.Di(end+1,:) = [nnode, Di];
+            geom.piv.piv(nnode) = min(geom.piv.piv)-1;
+          end % if( geom.piv.nlist(n(1)) ~= geom.piv.nlist(n(2)) )
+	      %----------------------------------
+    
+        else
+				    % Lato di Neumann
+          geom.piv.nlist(nnode) = 0;
+          geom.piv.piv(nnode) = max(geom.piv.piv)+1;
+        end % if( geom.piv.nlist(n(1))~=0 & geom.piv.nlist(n(2))~=0 )
+        
+      else % if( any(e==-1) )
+        geom.piv.nlist(nnode) = 0;
+        geom.piv.piv(nnode) = max(geom.piv.piv)+1;
+      end %if( any(e==-1) )
+    
+    
+    end % for l=1:geom.Nobj.N_edge
 
 end

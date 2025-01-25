@@ -1,4 +1,4 @@
-function [geom] = triangolatore(area_ref, marker_triang)
+function [geom] = triangolatore_per_P2(area_ref, marker_triang, marker_vertici)
 
 
     if(~exist('mybbtr30.m'))
@@ -67,7 +67,7 @@ function [geom] = triangolatore(area_ref, marker_triang)
     %BC.Boundary.Values = [2 4 6 8];
     %BC.Boundary.Values = [2 5 7 9];
     BC.Boundary.Values = marker_triang;
-    BC.InputVertexValues = [1 1 1 1];% marker dei vertici iniziali, basta che rimangano dispari 
+    BC.InputVertexValues = marker_vertici;% marker dei vertici iniziali, basta che rimangano dispari 
     % Questi indici posso essere anche indici ai valori numerici
     % contenuti nel vettore BC.Values
     

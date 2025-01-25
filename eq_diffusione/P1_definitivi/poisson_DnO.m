@@ -107,7 +107,7 @@
 
     u0 = gmres(A, b - AD*uD,[],1e-12,size(A,1));
 
-    u_star = zeros(geom.Nobj.N_node - size(geom.piv.Di,1),1);
+    u_star = zeros(size(geom.obj.P,1),1);
 
     % Impongo le condizioni di Dirichlet non omogeneo al bordo
     for i = 1:geom.Nobj.N_node
